@@ -1,187 +1,225 @@
-import React from 'react';
+import React, { useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-
-import { MainStackParamList } from '../../../navigation/types';
-import { generateDoctorSlots } from '../utils/mockSlots';
-
-type Props = NativeStackScreenProps<
-  MainStackParamList,
-  'DoctorDetails'
->;
-
-export default function DoctorDetailsScreen({
-  route,
-}: Props) {
+} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { MainStackParamList } from "../../../navigation/types";
+import { generateDoctorSlots } from "../utils/mockSlots";
+import { createBooking } from "../utils/bookingService";
+import { useAppTheme } from "../../../app/providers/AppProviders";
+type Props = NativeStackScreenProps<MainStackParamList, "DoctorDetails">;
+function addDays(date: Date, n: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split("T")[0];
+}
+export default function DoctorDetailsScreen({ route, navigation }: Props) {
   const { doctor } = route.params;
-
-  const today = new Date()
-    .toISOString()
-    .split('T')[0];
-
-  const slots = generateDoctorSlots(
-    doctor.id,
-    today,
+  const { theme } = useAppTheme();
+  const [date, setDate] = useState(addDays(new Date(), 1));
+  const [selected, setSelected] = useState<string | null>(null);
+  const slots = useMemo(
+    () => generateDoctorSlots(doctor.id, date),
+    [doctor.id, date],
   );
-
+  const book = async () => {
+    const slot = slots.find((s) => s.id === selected);
+    if (!slot) return;
+    try {
+      await createBooking(doctor, slot);
+      Alert.alert("Booking confirmed", "Your consultation has been booked.", [
+        {
+          text: "View upcoming",
+          onPress: () => navigation.navigate("UpcomingConsultations"),
+        },
+        { text: "Done" },
+      ]);
+      setSelected(null);
+    } catch (e) {
+      Alert.alert(
+        "Unable to book",
+        e instanceof Error ? e.message : "Please try again.",
+      );
+    }
+  };
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={styles.container}
     >
-      {/* Doctor Image */}
-      <Image
-        source={{ uri: doctor.image }}
-        style={styles.image}
-      />
-
-      {/* Doctor Information */}
-      <Text style={styles.name}>
-        {doctor.name}
-      </Text>
-
-      <Text style={styles.specialization}>
+      <Image source={{ uri: doctor.image }} style={styles.image} />
+      <Text style={[styles.name, { color: theme.text }]}>{doctor.name}</Text>
+      <Text style={[styles.spec, { color: theme.primary }]}>
         {doctor.specialization}
       </Text>
-
-      <Text style={styles.info}>
-        {doctor.experience} years experience
+      <Text style={[styles.info, { color: theme.muted }]}>
+        {doctor.experience} years experience • ⭐ {doctor.rating}
       </Text>
-
-      <Text style={styles.info}>
-        ⭐ {doctor.rating} rating
+      <Text style={[styles.fee, { color: theme.text }]}>
+        ₹{doctor.consultationFee} consultation
       </Text>
-
-      <Text style={styles.fee}>
-        ₹{doctor.consultationFee}
-      </Text>
-
-      {/* Available Slots */}
-      <Text style={styles.slotsTitle}>
-        Available Slots
-      </Text>
-
-      <View style={styles.slotsContainer}>
-        {slots.map((slot) => {
-          const disabled = slot.isBooked;
-
+      <Text style={[styles.heading, { color: theme.text }]}>Choose date</Text>
+      <View style={styles.row}>
+        {[1, 2, 3].map((n) => {
+          const d = addDays(new Date(), n);
+          const active = d === date;
           return (
             <Pressable
-              key={slot.id}
-              disabled={disabled}
+              key={d}
+              onPress={() => {
+                setDate(d);
+                setSelected(null);
+              }}
               style={[
-                styles.slot,
-                disabled && styles.bookedSlot,
+                styles.date,
+                { borderColor: theme.border },
+                active && {
+                  backgroundColor: theme.primary,
+                  borderColor: theme.primary,
+                },
               ]}
             >
               <Text
-                style={[
-                  styles.slotText,
-                  disabled &&
-                    styles.bookedSlotText,
-                ]}
+                style={{
+                  color: active ? "#fff" : String(theme.text),
+                  fontWeight: "700",
+                }}
               >
-                {slot.startTime} - {slot.endTime}
+                {n === 1
+                  ? "Tomorrow"
+                  : new Date(d).toLocaleDateString(undefined, {
+                      weekday: "short",
+                    })}
               </Text>
-
-              <Text style={styles.slotStatus}>
-                {disabled ? 'Booked' : 'Available'}
+              <Text
+                style={{
+                  color: active ? "#fff" : String(theme.muted),
+                  fontSize: 12,
+                }}
+              >
+                {d.slice(5)}
               </Text>
             </Pressable>
           );
         })}
       </View>
+      <Text style={[styles.heading, { color: theme.text }]}>
+        Available slots
+      </Text>
+      <View style={styles.grid}>
+        {slots.map((s) => {
+          const disabled = s.isBooked;
+          const active = s.id === selected;
+          return (
+            <Pressable
+              key={s.id}
+              disabled={disabled}
+              onPress={() => setSelected(s.id)}
+              accessibilityState={{ disabled, selected: active }}
+              style={[
+                styles.slot,
+                { borderColor: theme.border },
+                disabled && styles.disabled,
+                active && {
+                  backgroundColor: theme.primary,
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: active ? "#fff" : String(theme.text),
+                  textAlign: "center",
+                  fontWeight: "600",
+                }}
+              >
+                {s.startTime}
+              </Text>
+              <Text
+                style={{
+                  color: disabled
+                    ? String(theme.muted)
+                    : active
+                      ? "#fff"
+                      : String(theme.primary),
+                  fontSize: 11,
+                  textAlign: "center",
+                  marginTop: 3,
+                }}
+              >
+                {disabled ? "Booked" : s.endTime}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Pressable
+        disabled={!selected}
+        onPress={book}
+        style={[
+          styles.book,
+          { backgroundColor: selected ? theme.primary : "#AAB5AC" },
+        ]}
+      >
+        <Text style={styles.bookText}>
+          {selected ? "Confirm booking" : "Select a slot"}
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  contentContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-
-  image: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    marginBottom: 20,
-  },
-
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-
-  specialization: {
-    fontSize: 16,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-
-  info: {
-    fontSize: 15,
-    marginTop: 8,
-  },
-
-  fee: {
+  container: { padding: 20, alignItems: "center" },
+  image: { width: 130, height: 130, borderRadius: 65, marginBottom: 18 },
+  name: { fontSize: 25, fontWeight: "800" },
+  spec: { fontSize: 16, marginTop: 6, fontWeight: "700" },
+  info: { marginTop: 8 },
+  fee: { fontSize: 18, fontWeight: "800", marginTop: 10 },
+  heading: {
+    alignSelf: "stretch",
     fontSize: 18,
-    fontWeight: '700',
-    marginTop: 12,
-  },
-
-  slotsTitle: {
-    alignSelf: 'flex-start',
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 30,
+    fontWeight: "800",
+    marginTop: 28,
     marginBottom: 12,
   },
-
-  slotsContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-
-  slot: {
-    width: '48%',
-    padding: 14,
+  row: { alignSelf: "stretch", flexDirection: "row", flexWrap: "wrap" },
+  date: {
+    width: "31%",
+    padding: 12,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 12,
+    marginRight: "2%",
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  grid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  slot: {
+    width: "48%",
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
     marginBottom: 10,
   },
-
-  bookedSlot: {
-    opacity: 0.4,
+  disabled: { opacity: 0.35 },
+  book: {
+    width: "100%",
+    height: 52,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 18,
+    marginBottom: 20,
   },
-
-  slotText: {
-    textAlign: 'center',
-    fontSize: 14,
-  },
-
-  bookedSlotText: {
-    textDecorationLine: 'line-through',
-  },
-
-  slotStatus: {
-    textAlign: 'center',
-    marginTop: 6,
-    fontSize: 12,
-  },
+  bookText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 });

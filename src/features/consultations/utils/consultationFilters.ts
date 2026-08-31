@@ -1,9 +1,9 @@
 export const SPECIALIZATIONS = [
-  'Ayurvedic Doctor',
-  'General Physician',
-  'Dermatologist',
-  'Panchakarma Specialist',
-  'Nutritionist',
+  "Ayurvedic Doctor",
+  "General Physician",
+  "Dermatologist",
+  "Panchakarma Specialist",
+  "Nutritionist",
 ];
 
 export const RATING_OPTIONS = [0, 4.5, 4.7, 4.9];

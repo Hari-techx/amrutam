@@ -1,34 +1,65 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface AuthState {
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+export interface AuthState {
   isLoggedIn: boolean;
   user: string | null;
+  hydrated: boolean;
+  loading: boolean;
+  error: string | null;
 }
-
 const initialState: AuthState = {
   isLoggedIn: false,
   user: null,
+  hydrated: false,
+  loading: false,
+  error: null,
 };
-
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
- reducers: {
-  loginRequest: (state) => {
+  reducers: {
+    hydrateRequest: (s) => {
+      s.loading = true;
+    },
+    hydrate: (s, a: PayloadAction<string | null>) => {
+      s.user = a.payload;
+      s.isLoggedIn = Boolean(a.payload);
+      s.hydrated = true;
+      s.loading = false;
+    },
+    loginRequest: (
+      s,
+      a: PayloadAction<{ email: string; password: string }>,
+    ) => {
+      s.loading = true;
+      s.error = null;
+    },
+    loginSuccess: (s, a: PayloadAction<string>) => {
+      s.isLoggedIn = true;
+      s.user = a.payload;
+      s.loading = false;
+      s.error = null;
+    },
+    loginFailure: (s, a: PayloadAction<string>) => {
+      s.loading = false;
+      s.error = a.payload;
+    },
+    logoutRequest: (s) => {
+      s.loading = true;
+    },
+    logout: (s) => {
+      s.isLoggedIn = false;
+      s.user = null;
+      s.loading = false;
+    },
   },
-
-  login: (state, action: PayloadAction<string>) => {
-    state.isLoggedIn = true;
-    state.user = action.payload;
-  },
-
-  logout: (state) => {
-    state.isLoggedIn = false;
-    state.user = null;
-  },
-},
 });
-
-export const {loginRequest, login, logout } = authSlice.actions;
-
+export const {
+  hydrateRequest,
+  hydrate,
+  loginRequest,
+  loginSuccess,
+  loginFailure,
+  logoutRequest,
+  logout,
+} = authSlice.actions;
 export default authSlice.reducer;
