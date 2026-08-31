@@ -25,18 +25,13 @@ module.exports = {
       build:
         "xcodebuild -workspace ios/YOUR_APP.xcworkspace -scheme YOUR_APP -configuration Release -sdk iphonesimulator -derivedDataPath ios/build",
     },
-
     "android.debug": {
       type: "android.apk",
-
       binaryPath: "android/app/build/outputs/apk/full/debug/app-full-debug.apk",
-
       build:
         "cd android && gradlew.bat assembleFullDebug assembleFullDebugAndroidTest -DtestBuildType=debug",
-
       reversePorts: [8081],
     },
-
     "android.release": {
       type: "android.apk",
 

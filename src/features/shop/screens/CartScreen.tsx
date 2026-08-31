@@ -41,6 +41,8 @@ export default function CartScreen() {
       ]}
     >
       <Text
+        testID="cart-screen-title"
+
         style={[
           styles.title,
           {

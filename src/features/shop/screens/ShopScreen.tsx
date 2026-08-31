@@ -38,15 +38,10 @@ export default function ShopScreen() {
 
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("All");
-
   const [sort, setSort] = useState<"price" | "rating">("rating");
-
   const [minRating, setMinRating] = useState(0);
-
   const [maxPrice, setMaxPrice] = useState(1000);
-
   const [limit, setLimit] = useState(PAGE_SIZE);
-
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
   const filteredProducts = useMemo(() => {
@@ -58,7 +53,6 @@ export default function ShopScreen() {
           category === "All" || product.category === category;
 
         const matchesRating = product.rating >= minRating;
-
         const matchesPrice = product.price <= maxPrice;
 
         const matchesSearch =
@@ -111,13 +105,11 @@ export default function ShopScreen() {
 
   const toggleRatingFilter = useCallback(() => {
     setMinRating((current) => (current === 4.5 ? 0 : 4.5));
-
     resetPagination();
   }, [resetPagination]);
 
   const togglePriceFilter = useCallback(() => {
     setMaxPrice((current) => (current === 500 ? 1000 : 500));
-
     resetPagination();
   }, [resetPagination]);
 
@@ -147,7 +139,6 @@ export default function ShopScreen() {
   const handleAdd = useCallback(
     async (product: Product) => {
       await addToCart(product);
-
       show(`${product.name} added to cart`);
     },
     [show],
@@ -434,6 +425,7 @@ export default function ShopScreen() {
       ]}
     >
       <FlatList
+        testID="shop-product-list"
         data={visibleProducts}
         keyExtractor={(item) => item.id}
         numColumns={2}
